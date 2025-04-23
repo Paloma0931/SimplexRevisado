@@ -25,7 +25,7 @@ for i in range (0,QuantLinhas):
         NaoNegatividade.append(dados[i])
 
 Variaveis = re.findall(r'x\d+', FuncaoObjetivo[0]) #identificando quais são as variáveis de decisão
-
+print(" simplex ")
 
 if Tipo == "maximizar": #trasformando a função objetivo pra forma padrão
     s = FuncaoObjetivo[0]
