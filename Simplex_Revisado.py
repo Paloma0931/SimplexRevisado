@@ -16,6 +16,7 @@ def imprimirvalores ():
     print("Valor de XB (solução básica):\n", XB)
     print("Valor da Função Objetivo:", FunObjSol)
     print("Custos relativos:\n", CustosRelativos)
+    print("Valor Dual (pT): \n", pT)
 
 def NovaBase ():
     print(f"Variável que vai entrar na base: X{IndiceMaisNegativo}")
