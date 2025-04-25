@@ -23,7 +23,7 @@ def NovaBase ():
 
 #-----------------------------------------------------------------------------------------------------------------------------------------
 #Lendo o arquivo txt para armazenar os dados corretamente nos vetores e matrizes
-with open ('/home/paloma/OtimizaçãoLinear/Simplex/Instâncias/Inst9Var.txt','r') as arquivo:
+with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst5Var','r') as arquivo:
     dados = [linha.strip() for linha in arquivo.readlines()] #linha.strip() para remover as quebras de linhas (\n)
 
 QuantLinhas = len(dados)
@@ -92,10 +92,12 @@ for i in Restricoes:
     if '<=' in i:
         RestricaoAjustada = i.replace('<=', f' + x{Indice} =')
         FuncaoObjetivo.append(f'+ 0 x{Indice}')
+        TipoVar.append(f'x{Indice} >= 0')
         Indice +=1
     elif '>=' in i:
         RestricaoAjustada = i.replace('>=', f' - x{Indice} =')
         FuncaoObjetivo.append(f'+ 0 x{Indice}')
+        TipoVar.append(f'x{Indice} >= 0')
         Indice +=1
     else:
         RestricaoAjustada = i
@@ -103,6 +105,12 @@ for i in Restricoes:
 
 FunObjAtualizada = [' '.join(FuncaoObjetivo)] #utilizei join apenas para unir em uma única linha a FO 
 
+VerNotacao = int(input("Deseja ver o modelo na forma padrão? (1- Sim / 2- Não): " + "\n"))
+if VerNotacao== 1:
+    titulo("Modelo na Forma Padrão")
+    print("Função objetivo: ", FunObjAtualizada)
+    print("Restrições: ", RestricoesPadrao)
+    print("Não negatividade: ", TipoVar)
 #-----------------------------------------------------------------------------------------------------------------------------------------
 
 titulo("Transformando o modelo padrão em notação matricial")
