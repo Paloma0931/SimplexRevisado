@@ -24,7 +24,7 @@ def NovaBase ():
 
 #-----------------------------------------------------------------------------------------------------------------------------------------
 #Lendo o arquivo txt para armazenar os dados corretamente nos vetores e matrizes
-with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst5Var','r') as arquivo:
+with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst9Var.txt','r') as arquivo:
     dados = [linha.strip() for linha in arquivo.readlines()] #linha.strip() para remover as quebras de linhas (\n)
 
 QuantLinhas = len(dados)
@@ -45,7 +45,6 @@ for i in range (0,QuantLinhas):
 
 Variaveis = re.findall(r'x\d+', FuncaoObjetivo[0]) #identificando quais são as variáveis de decisão
 indicesX = [int(i) for i in re.findall(r'x(\d+)', FuncaoObjetivo[0])] 
-
 
 termos = re.findall(r'([+-]?\s*(?:\d+(?:\.\d+)?\s*)?)(x\d+)', FuncaoObjetivo[0]) #identificando quais são os coeficientes da FO do problema original
 coeficientes= []
@@ -76,6 +75,11 @@ for i in Restricoes:
     CoefRestOriginal.append(ListaTemp)
 CoefRestOriginal = np.array(CoefRestOriginal) #matriz com os coeficientes das variáveis nas restrições 
 
+OperadoresOriginais = [] #identificando os operadores originais
+for i in Restricoes:
+    operador = re.search(r'(<=|>=|=)', i)
+    OperadoresOriginais.append(operador.group())
+
 if Tipo == "maximizar": #trasformando a função objetivo pra forma padrão
     s = FuncaoObjetivo[0]
     if s[0] not in '+-': 
@@ -88,17 +92,20 @@ if Tipo == "maximizar": #trasformando a função objetivo pra forma padrão
 #Adicionando variáveis de folga ou excesso, além de atualizar a função objetivo
 RestricoesPadrao = []
 Indice = len(Variaveis) + 1
+IndVarAdicionais = []
 
 for i in Restricoes:
     if '<=' in i:
         RestricaoAjustada = i.replace('<=', f' + x{Indice} =')
         FuncaoObjetivo.append(f'+ 0 x{Indice}')
         TipoVar.append(f'x{Indice} >= 0')
+        IndVarAdicionais.append(Indice)
         Indice +=1
     elif '>=' in i:
         RestricaoAjustada = i.replace('>=', f' - x{Indice} =')
         FuncaoObjetivo.append(f'+ 0 x{Indice}')
         TipoVar.append(f'x{Indice} >= 0')
+        IndVarAdicionais.append(Indice)
         Indice +=1
     else:
         RestricaoAjustada = i
@@ -112,6 +119,7 @@ if VerNotacao== 1:
     print("Função objetivo: ", FunObjAtualizada)
     print("Restrições: ", RestricoesPadrao)
     print("Não negatividade: ", TipoVar)
+
 #-----------------------------------------------------------------------------------------------------------------------------------------
 
 titulo("Transformando o modelo padrão em notação matricial")
@@ -153,6 +161,8 @@ for i in RestricoesPadrao:
     A.append(ListaTemp)
 A = np.array(A) #matriz com os coeficientes das variáveis nas restrições 
 
+epsilon = 1e-8
+
 VerNotacao = int(input("Deseja ver a notação matricial do problema na forma padrão? (1- Sim / 2- Não): " + "\n"))
 if VerNotacao== 1:
     print ("Vetor das variáveis de decisão (x): \n", x)
@@ -164,17 +174,19 @@ if VerNotacao== 1:
 IB = []
 In = []
 
-identidade = np.eye(len(RestricoesPadrao)) #gerando a matriz identidade para comparar 
-combinacoes = list(combinations(range(A.shape[1]), len(RestricoesPadrao))) #verificando todas as combinações possíveis das colunas  
+for i in IndVarAdicionais:
+    IB.append(i - 1)
 
-for i in combinacoes: #verificar se essa combinação é igual a matriz identidade
-    colunas = A[:, i]
-    if (colunas == identidade).all(): #se for igual, variáveis básicas encontrada
-        IB.extend(i)
-        for j in range (0, len(x)): #verificando quem vai ser as variáveis não básicas
-            if j not in IB:
-                In.append(j)
-if IB == []:
+for i in indicesX:
+    In.append(i - 1)
+
+B = np.array(A[:, IB]) #matriz base
+
+if len(IB) == len(RestricoesPadrao):
+    InvB = np.linalg.inv(B) #inversa da matriz base 
+    identidade = np.eye(len(RestricoesPadrao)) #gerando a matriz identidade para comparar 
+
+if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
     print(" ")
     print("Não existem combinações possíveis que formam uma matriz identidade")
 
@@ -189,19 +201,28 @@ if IB == []:
         coefzerado = re.sub(r'([+-]?\s*)(?:\d+(?:\.\d+)?\s*)?(x\d+)', r'\1 0 \2', i)
         coefzerado = re.sub(r'^\s+', '', coefzerado)
         FunObjArtificial.append(coefzerado)
-
+    
     cont = len(x)+1
-    for i in RestricoesPadrao:
-        segmentacao = re.split(r'(<=|>=|=)', i)
-        esquerda = segmentacao[0].strip()
-        operador = segmentacao[1]
-        direita = segmentacao[2].strip()
+    for i in range (len(RestricoesPadrao)): #verificar quais restrições necessitam de variáveis artificiais
+            segmentacao = re.split(r'(=)', RestricoesPadrao[i])
+            esquerda = segmentacao[0].strip()
+            operador = segmentacao[1]
+            direita = segmentacao[2].strip()
 
-        NovaRestr = f"{esquerda} + x{cont} = {direita}"
-        IndVarArt.append(cont-1)
-        RestricoesArtificiais.append(NovaRestr)
-        FunObjArtificial.append(f'+ x{cont}')
-        cont+=1
+            if (OperadoresOriginais[i] == ('=')):
+                NovaRestr = f"{esquerda} + x{cont} = {direita}"
+                IndVarArt.append(cont)
+                RestricoesArtificiais.append(NovaRestr)
+                FunObjArtificial.append(f'+ x{cont}')
+                cont+=1
+            elif (OperadoresOriginais[i] == ('>=')):
+                NovaRestr = f"{esquerda} + x{cont} = {direita}"
+                IndVarArt.append(cont)
+                RestricoesArtificiais.append(NovaRestr)
+                FunObjArtificial.append(f'+ x{cont}')
+                cont+=1
+            elif (OperadoresOriginais[i] == ('<=')):
+                RestricoesArtificiais.append(RestricoesPadrao[i])
 
     FunObjArtificial = [' '.join(FunObjArtificial)] 
 
@@ -240,14 +261,26 @@ if IB == []:
         A_Art.append(ListaTemp)
     A_Art= np.array(A_Art) 
 
-    for i in x_Art:
-        if i not in x:
-            indice = np.where(x_Art == i)[0]
-            IB.append(indice [0]) 
-        
-        if i in x:
-            indice = np.where(x == i)[0]
-            In.append(indice [0]) 
+    indicesgeral = []
+    IB = []
+    In = []
+
+    for i in range(0, len(x)):
+        indicesgeral.append(i)
+    for i in IndVarArt:
+        indicesgeral.append(i-1)
+    
+    
+    for linha in range(A.shape[0]): #verificando as colunas que formam a identidade para determinar IB
+        for j in range(A_Art.shape[1]):
+            coluna = A_Art[:, j]
+            if (coluna[linha] == 1.0) and (np.count_nonzero(coluna) == 1):
+                IB.append(j)
+                break
+
+    for i in indicesgeral: #determinando In
+        if i not in IB:
+            In.append(i)
 
     #==================================================== Identificando a matriz base===============================================
     iter = 1
@@ -284,7 +317,7 @@ if IB == []:
         #============================ Critério de parada caso todos os custos relativos >= 0==========================================
         var = len(CustosRelativos) 
         for i in range (0,len(CustosRelativos)):
-            if CustosRelativos[i] >= 0:
+            if CustosRelativos[i] >= (-epsilon):
                 var-=1
         if var == 0:
             break
@@ -298,15 +331,15 @@ if IB == []:
                 indice.append(In[i])
 
         ValorMaisNegativo = min(analise)
-        posicao = analise.index(ValorMaisNegativo)
-        IndiceMaisNegativo = indice[posicao]
+        posicoes = [i for i, valor in enumerate(analise) if valor == ValorMaisNegativo]
+        IndiceMaisNegativo = max(indice[i] for i in posicoes)
 
         #========================================== Verificando quem vai sair da base===================================================
         Y = InvB @ (A_Art[:, IndiceMaisNegativo].reshape(-1,1)) #calculando o Y = (B-1 * Ai) 
 
         cont = len(Y) #verificando se o problema é ilimitado
         for i in range (0,len(Y)):
-            if Y[i] <= 0:
+            if Y[i] <= epsilon:
                 cont-=1
         if cont == 0:
             break
@@ -336,7 +369,7 @@ if IB == []:
 
     for i in IndVarArt:
         for j in In:
-            if i == j:
+            if (i-1) == j:
                 In.remove(j)
 
                                                     #Procedimento Simplex 
@@ -383,20 +416,20 @@ while True:
     analise = []
     indice = []
     for i in range (0, len(In)):
-        if CustosRelativos[i] <= 0:
+        if CustosRelativos[i] <= (-epsilon):
             analise.append(CustosRelativos[i])                                   
             indice.append(In[i])
 
     ValorMaisNegativo = min(analise)
-    posicao = analise.index(ValorMaisNegativo)
-    IndiceMaisNegativo = indice[posicao]
+    posicoes = [i for i, valor in enumerate(analise) if valor == ValorMaisNegativo]
+    IndiceMaisNegativo = max(indice[i] for i in posicoes)
 
     #verificando quem vai sair da base 
     Y = InvB @ (A[:, IndiceMaisNegativo].reshape(-1,1)) #calculando o Y = (B-1 * Ai) 
 
     cont = len(Y) #verificando se o problema é ilimitado
     for i in range (0,len(Y)):
-        if Y[i] <= 0:
+        if Y[i] <= epsilon:
             cont-=1
     if cont == 0:
         break
@@ -428,11 +461,11 @@ while True:
 #-----------------------------------------------------------------------------------------------------------------------------------------
 RecursosDual = []
 CoefObjDual = []
-CoefRestDual = np.transpose(A)
+CoefRestDual = np.transpose(CoefRestOriginal)
 VarDual = []
 
-for i in c:
-    RecursosDual.append(abs(int(i)))
+for i in CoefObjOriginal:
+    RecursosDual.append(int(i))
 
 for i in b:
     CoefObjDual.append(i)
@@ -442,9 +475,10 @@ for i in range(1, A.shape[0]+1):
 
 
 RestricoesDual = [] #verificando quais são as restrições dual
+
 for i in range (0, len(CoefRestDual)):
     ResDual = []
-    for j in range (0, A.shape[0]):
+    for j in range (0, CoefRestOriginal.shape[0]):
         coef = float(CoefRestDual[i][j])
         if valor.is_integer():
             valor = int(valor)
@@ -458,7 +492,11 @@ for i in range (0, len(CoefRestDual)):
             termo = f"{coef}{var}"
 
         ResDual.append(termo)
-    ResDual.append("<=")
+    if Tipo == "minimizar":
+        ResDual.append("<=")
+    elif Tipo == "maximizar":
+        ResDual.append(">=")
+
     ResDual += [str(RecursosDual[i])]
     ResDual = " ".join(ResDual)
     RestricoesDual.append(ResDual)
@@ -478,13 +516,33 @@ for i in range (0, A.shape[0]):
 FunObjDual = " ".join(FunObjDual)
 
 RestVar = []
-for i in VarDual:
-    RestVar.append(f'{i} livre')
+if Tipo == "minimizar":
+    for i in range (len(Restricoes)):
+        if '<=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} <= 0')
+        elif '>=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} >= 0')
+        elif '=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} livre')
+
+elif Tipo == "maximizar":
+    for i in range (len(Restricoes)):
+        if '<=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} >= 0')
+        elif '>=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} <= 0')
+        elif '=' in Restricoes[i]:
+            RestVar.append(f'p{i+1} livre')
+
+
                                                     #Gerando o arquivo txt com o Dual do Primal na forma padrão
 #-----------------------------------------------------------------------------------------------------------------------------------------
 titulo("Gerando o arquivo txt com o Dual")
 with open ("Dual.txt", "w") as arquivo:
-    arquivo.write("Maximizar\n")
+    if Tipo == "minimizar":
+        arquivo.write("Maximizar\n")
+    elif Tipo == "maximizar":
+        arquivo.write("Minimizar\n")
     arquivo.write(FunObjDual)
     arquivo.write("\n")
     for i in RestricoesDual:
@@ -502,8 +560,8 @@ solucao_primal = {}
 for i in range (len(IB)):
     if IB[i]+1 in indicesX:
         solucao_primal[f"x{IB[i]+1}"] = float(XB[i][0])
-for i in range (len(In)):
-    if In[i]+1 in indicesX:
+for i in range(len(In)):
+    if (In[i]+1 in indicesX) and (f"x{In[i]+1}" not in solucao_primal):
         solucao_primal[f"x{In[i]+1}"] = 0.0
 
 
