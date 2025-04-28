@@ -326,7 +326,7 @@ if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
         analise = []
         indice = []
         for i in range (0, len(In)):
-            if CustosRelativos[i] <= 0:
+            if CustosRelativos[i] <= epsilon:
                 analise.append(CustosRelativos[i])                                   
                 indice.append(In[i])
 
@@ -406,7 +406,7 @@ while True:
         
     var = len(CustosRelativos) #adicionando o critério de parada caso todos os custos relativos >= 0
     for i in range (0,len(CustosRelativos)):
-        if CustosRelativos[i] >= 0:
+        if CustosRelativos[i] >= (-epsilon):
             var-=1
     if var == 0:
         print("Solução ótima encontrada")
@@ -416,7 +416,7 @@ while True:
     analise = []
     indice = []
     for i in range (0, len(In)):
-        if CustosRelativos[i] <= (-epsilon):
+        if CustosRelativos[i] <= epsilon:
             analise.append(CustosRelativos[i])                                   
             indice.append(In[i])
 
