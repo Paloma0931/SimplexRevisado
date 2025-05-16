@@ -24,7 +24,7 @@ def NovaBase ():
 
 #-----------------------------------------------------------------------------------------------------------------------------------------
 #Lendo o arquivo txt para armazenar os dados corretamente nos vetores e matrizes
-with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst5Var','r') as arquivo:
+with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst4Var.txt','r') as arquivo:
     dados = [linha.strip() for linha in arquivo.readlines()] #linha.strip() para remover as quebras de linhas (\n)
 
 QuantLinhas = len(dados)
@@ -326,7 +326,7 @@ if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
         analise = []
         indice = []
         for i in range (0, len(In)):
-            if CustosRelativos[i] <= epsilon:
+            if CustosRelativos[i] <= 0:
                 analise.append(CustosRelativos[i])                                   
                 indice.append(In[i])
 
@@ -347,13 +347,18 @@ if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
         TesteRazao = []
         IndiceVar = []
         for j in range (0, XB.shape[0]):
-            if Y[j] > 0:
+            if Y[j] > epsilon:
                 divisao = XB[j]/Y[j] 
                 TesteRazao.extend(divisao)
                 IndiceVar.append(IB[j])
-        Minimo = min(TesteRazao) 
-        IndiceMin= TesteRazao.index(Minimo)
-        VarSaiBase = IndiceVar[IndiceMin] 
+
+        if len(TesteRazao) > 0 and all(x == TesteRazao[0] for x in TesteRazao):
+            IndiceMax = max(IndiceVar)
+            Indice = IndiceVar.index(IndiceMax)
+        else:
+            Minimo = min(TesteRazao) 
+            Indice= TesteRazao.index(Minimo)
+        VarSaiBase = IndiceVar[Indice] 
 
         if VerResultados == 1:
             NovaBase()
@@ -365,13 +370,12 @@ if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
         pos_in = In.index(IndiceMaisNegativo)
         In[pos_in] = VarSaiBase
 
-        iter+= 1
+        iter+=1
 
     for i in IndVarArt:
         for j in In:
             if (i-1) == j:
                 In.remove(j)
-
                                                     #Procedimento Simplex 
 #-----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -406,7 +410,7 @@ while True:
         
     var = len(CustosRelativos) #adicionando o critério de parada caso todos os custos relativos >= 0
     for i in range (0,len(CustosRelativos)):
-        if CustosRelativos[i] >= (-epsilon):
+        if CustosRelativos[i] >= 0:
             var-=1
     if var == 0:
         print("Solução ótima encontrada")
@@ -416,7 +420,7 @@ while True:
     analise = []
     indice = []
     for i in range (0, len(In)):
-        if CustosRelativos[i] <= epsilon:
+        if CustosRelativos[i] <= (-epsilon):
             analise.append(CustosRelativos[i])                                   
             indice.append(In[i])
 
@@ -437,13 +441,18 @@ while True:
     TesteRazao = []
     IndiceVar = []
     for j in range (0, XB.shape[0]):
-        if Y[j] > 0:
+        if Y[j] > epsilon:
             divisao = XB[j]/Y[j] #calculando o teste da razão (XB / Y)
             TesteRazao.extend(divisao)
             IndiceVar.append(IB[j])
-    Minimo = min(TesteRazao) #verificando o valor mínimo do teste da razão (min {(XB / Y)})
-    IndiceMin= TesteRazao.index(Minimo)
-    VarSaiBase = IndiceVar[IndiceMin] #verificando quem sai da base
+
+    if len(TesteRazao) > 0 and all(x == TesteRazao[0] for x in TesteRazao):
+        IndiceMax = max(IndiceVar)
+        Indice = IndiceVar.index(IndiceMax)
+    else:
+        Minimo = min(TesteRazao) #verificando o valor mínimo do teste da razão (min {(XB / Y)})
+        Indice= TesteRazao.index(Minimo)
+    VarSaiBase = IndiceVar[Indice] #verificando quem sai da base
 
     if VerResultados == 1:
         NovaBase()
