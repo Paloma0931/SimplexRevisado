@@ -161,7 +161,7 @@ for i in RestricoesPadrao:
     A.append(ListaTemp)
 A = np.array(A) #matriz com os coeficientes das variáveis nas restrições 
 
-epsilon = 1e-8
+epsilon = 1e-20
 
 VerNotacao = int(input("Deseja ver a notação matricial do problema na forma padrão? (1- Sim / 2- Não): " + "\n"))
 if VerNotacao== 1:
@@ -182,11 +182,11 @@ for i in indicesX:
 
 B = np.array(A[:, IB]) #matriz base
 
-if len(IB) == len(RestricoesPadrao):
-    InvB = np.linalg.inv(B) #inversa da matriz base 
-    identidade = np.eye(len(RestricoesPadrao)) #gerando a matriz identidade para comparar 
+identidade = np.eye(len(RestricoesPadrao))  # Matriz identidade
 
-if len(IB) != len(RestricoesPadrao) or ((InvB != identidade).all()):
+if len(IB) == len(RestricoesPadrao) and np.allclose(B, identidade):
+    print("Base é a identidade. Usar Simplex padrão.")
+else:
     print(" ")
     print("Não existem combinações possíveis que formam uma matriz identidade")
 
