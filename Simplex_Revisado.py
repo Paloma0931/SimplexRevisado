@@ -24,7 +24,7 @@ def NovaBase ():
 
 #-----------------------------------------------------------------------------------------------------------------------------------------
 #Lendo o arquivo txt para armazenar os dados corretamente nos vetores e matrizes
-with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/Inst4Var.txt','r') as arquivo:
+with open ('/home/paloma/Documents/Codigos/SimplexRevisado/Instâncias/instchat.txt','r') as arquivo:
     dados = [linha.strip() for linha in arquivo.readlines()] #linha.strip() para remover as quebras de linhas (\n)
 
 QuantLinhas = len(dados)
